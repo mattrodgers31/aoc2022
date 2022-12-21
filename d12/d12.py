@@ -37,8 +37,15 @@ def point_exists(loc, h, w):
         return False
     return True
 
+def reachable_pt1(a, b, grid):
+    return grid[a] <= grid[b] + 1
+
+# Reverse direction for pt2
+def reachable_pt2(a, b, grid):
+    return grid[a] >= grid[b] - 1
+
 # Dijkstra's shortest path (see https://brilliant.org/wiki/dijkstras-short-path-finder/)
-def dijkstra(graph, source):
+def dijkstra(graph, source, reachable):
     h, w = graph.shape
     distances = {}
     unvisited = {}
@@ -60,18 +67,34 @@ def dijkstra(graph, source):
         for dir in NEIGHBORS:
             loc = add_coords(v, dir)
             if point_exists(loc, h, w):
-                if grid[loc] > grid[v] + 1:
-                    # Cannot be visited
-                    pass
-                else:
+                if reachable(loc, v, grid):
                     # Can move to this location in 1 step
                     d = cur_d + 1
                     if loc in unvisited:
                         if d < unvisited[loc]:
                             # This is the new shortest path to loc
                             unvisited[loc] = d
+                else:
+                    # Cannot be visited
+                    pass
 
     return distances
 
-d = dijkstra(grid, start)
-print(d[end])
+
+# Part 1
+d = dijkstra(grid, start, reachable_pt1)
+print(f"Part 1: {d[end]}")
+
+
+# For part 2 do it backwards: start at the end and reverse the condition for being able to reach a
+# grid square. Then we can just check the min distance for any square that's an "a".
+d = dijkstra(grid, end, reachable_pt2)
+a_locations = np.where(grid == 0)
+min_distance = np.inf
+for i in range(len(a_locations[0])):
+    loc = (a_locations[0][i], a_locations[1][i])
+    distance = d[loc]
+    if distance < min_distance:
+        min_distance = distance
+
+print(f"Part 2: {min_distance}")
