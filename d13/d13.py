@@ -1,6 +1,7 @@
 #! /usr/bin/python
 
 import sys
+from functools import cmp_to_key
 
 
 with open(sys.argv[1], "r") as f:
@@ -50,4 +51,29 @@ for i, p in enumerate(pairs):
         correct_list.append(i + 1)
 
 print(f"Part 1: {sum(correct_list)}")
-    
+
+
+# Part 2
+all_packets = [[[2]], [[6]]] # Start with divider packets
+
+# Construct list of inputs
+for l, r in pairs:
+    sanitiser_check(l)
+    sanitiser_check(r)
+    all_packets.append(eval(l))
+    all_packets.append(eval(r))
+
+# Custom comparison function for sorted()
+def final_cmp(l, r):
+    ret = cmp(l, r)
+    if ret >=0:
+        return -1
+    return 1
+
+# Sort the list
+s = sorted(all_packets, key=cmp_to_key(final_cmp))
+
+div1 = s.index([[2]]) + 1
+div2 = s.index([[6]]) + 1
+
+print(f"Part 2: {div1 * div2}")
