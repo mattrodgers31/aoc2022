@@ -19,6 +19,7 @@ def manhattan_distance(a, b):
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 sensors = []
+beacons = set()
 for line in lines:
     l = line.split(" ")
     sx = int(l[2][2:-1])
@@ -26,26 +27,45 @@ for line in lines:
     bx = int(l[8][2:-1])
     by = int(l[9][2:])
     dist = manhattan_distance((sx, sy), (bx, by))
-    sensors.append(((sx, sy), (bx, by), dist))
+    sensors.append(((sx, sy), dist))
+    beacons.add((bx, by))
 
 
 # Part 1
 
-beacons = set()
-no_beacons = set()
-for (sx, sy), (bx, by), db in sensors:
-    beacons.add((bx, by))
-    closest = (sx, Y_POS)
-    d = manhattan_distance((sx, sy), closest)
-    delta = db - d
-    if delta >= 0:
-        for dx in range(-delta, delta + 1):
-            no_beacons.add((sx + dx, Y_POS))
+# Find the min and max X values in the chosen row covered by any sensor
+minx = 2**32
+maxx = 0
+for (sx, sy), d in sensors:
+    dy = abs(Y_POS - sy)
+    if d >= dy:
+        dx = d - dy
+        if sx + dx > maxx:
+            maxx = sx + dx
+        if sx - dx < minx:
+            minx = sx - dx
 
-no_beacons = no_beacons - beacons
-print(f"Part 1: {len(no_beacons)}")
+# Now that we have min and max X values, scan through row to find any points not covered by sensor
+x = minx
+not_covered_count = 0
+while x < maxx:
+    for (sx, sy), d in sensors:
+        ds = manhattan_distance((sx, sy), (x, Y_POS))
+        if ds <= d:
+            # We are in range of this sensor
+            # Increment X by the remaining manhattan distance plus 1 to get the next non-covered point
+            x += d - ds + 1
+            break
+    else:
+        # Found a point not covered by any sensor
+        x += 1
 
+# Find the number of beacons already existing in this row (these don't count towards positions where we can't place a new beacon)
+beacons_in_row = sum(beacon[1] == Y_POS for beacon in beacons)
+pt1 = maxx + 1 - minx - not_covered_count - beacons_in_row
+print(f"Part 1: {pt1}")
 
+sys.exit()
 # Part 2
 
 x, y = MINIMUM, MINIMUM
