@@ -1,77 +1,81 @@
 #! /usr/bin/python
 
 import sys
-import numpy as np
 
 
 with open(sys.argv[1], "r") as f:
     lines = [[list(map(int, p.split(","))) for p in line.strip().split(" -> ")] for line in f.readlines()]
 
 
-maxy = 0
-filled = set()
-for i, line in enumerate(lines):
-    line_offset = line.copy()
-    line_offset.pop(0)
+class Cave():
+    def __init__(self, filled: set) -> None:
+        self.filled = filled
+        self.filled_at_start = len(self.filled)
+        self.maxy = max(y for x, y in filled)
 
-    # Iterate over pairs of co-ordinates defining each straight line segment
-    for start, end in zip(line, line_offset):
-        x = (start[0], end[0])
-        y = (start[1], end[1])
-        for i in range(min(x), max(x) + 1):
-            for j in range(min(y), max(y) + 1):
-                filled.add((i, j))
-                if j > maxy:
-                    maxy = j
+    def __repr__(self) -> str:
+        return f"Filled at start: {self.filled_at_start}, max y: {self.maxy}"
 
+    @classmethod
+    def from_lines(cls, lines: list):
+        filled = set()
+        for i, line in enumerate(lines):
+            # Iterate over pairs of co-ordinates defining each straight line segment
+            for start, end in zip(line, line[1:]):
+                x = (start[0], end[0])
+                y = (start[1], end[1])
+                for i in range(min(x), max(x) + 1):
+                    for j in range(min(y), max(y) + 1):
+                        filled.add((i, j))
+        return cls(filled)
 
-def visualise(filled):
-    minx = min([pt[0] for pt in filled])
-    miny = min([pt[1] for pt in filled])
-    maxx = max([pt[0] for pt in filled])
-    maxy = max([pt[1] for pt in filled])
-    grid = np.zeros((maxy-miny+1, maxx-minx+1))
-    for point in filled:
-        pt_norm = (point[1] - miny, point[0] - minx)
-        grid[pt_norm] = 1
-
-    print(grid)
-
-
-def drop_one_sand(pos, maxy, filled):
-    # Keep iterating until sand position exceeds max y co-ordinate
-    start_pos = pos
-    floory = maxy + 2
-    while pos[1] < floory:
-        if pos[1] + 1 == floory:
-            filled.add(pos)
-            return filled, False
-        # Try to drop directly down
-        if (pos[0], pos[1] + 1) not in filled:
-            pos = (pos[0], pos[1] + 1)
-        # Try to drop down and left
-        elif (pos[0] - 1, pos[1] + 1) not in filled:
-            pos = (pos[0] - 1, pos[1] + 1)
-        # Try to drop down and right
-        elif (pos[0] + 1, pos[1] + 1) not in filled:
-            pos = (pos[0] + 1, pos[1] + 1)
-        # Blocked
+    def _drop_one_sand(self, start_pos, pt2):
+        pos = start_pos
+        if pt2:
+            maxy = self.maxy + 2
         else:
-            filled.add(pos)
-            if pos == start_pos:
-                return filled, True
-            return filled, False # Not complete
+            maxy = self.maxy
 
-    assert(0)
-    return filled, True
+        while pos[1] <= maxy:
+            if pos[1] + 1 == maxy and pt2:
+                # Sand has reached floor and is blocked
+                self.filled.add(pos)
+                return False
+            # Try to drop directly down
+            if (pos[0], pos[1] + 1) not in self.filled:
+                pos = (pos[0], pos[1] + 1)
+            # Try to drop down and left
+            elif (pos[0] - 1, pos[1] + 1) not in self.filled:
+                pos = (pos[0] - 1, pos[1] + 1)
+            # Try to drop down and right
+            elif (pos[0] + 1, pos[1] + 1) not in self.filled:
+                pos = (pos[0] + 1, pos[1] + 1)
+            # Blocked
+            else:
+                self.filled.add(pos)
+                if not pt2:
+                    return False # Sand did not drop off bottom of grid
+                else:
+                    if pos == start_pos:
+                        return True # Sand has reached start point
+                    return False # Sand has not reached start point
 
-n = len(filled)
-i = 0
-while True:
-    filled, complete = drop_one_sand((500, 0), maxy, filled)
-    print(i, end="\r")
-    if complete:
-        break
-    i += 1
+        assert not pt2
+        return True # Sand dropped off bottom of grid (can only reach here for pt1)
 
-print(f"Part 2: {len(filled) - n}")
+    def run(self, start, pt2):
+        complete = False
+        while not complete:
+            complete = self._drop_one_sand(start, pt2)
+        return len(self.filled) - self.filled_at_start
+
+
+START = (500, 0)
+
+c = Cave.from_lines(lines)
+pt1 = c.run(START, False)
+print(f"Part 1: {pt1}")
+
+c = Cave.from_lines(lines)
+pt2 = c.run(START, True)
+print(f"Part 2: {pt2}")
