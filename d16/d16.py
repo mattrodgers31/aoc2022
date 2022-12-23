@@ -76,3 +76,13 @@ d = floyd_warshall(valves)
 m = generate_max_relief("AA", 30, valves, d)
 
 print(f"Part 1: {max(m.values())}")
+
+m = generate_max_relief("AA", 26, valves, d)
+
+pt2 = 0
+for k0, v0 in m.items():
+    for k1, v1 in m.items():
+        if k0.isdisjoint(k1):
+            pt2 = max(pt2, v0 + v1)
+
+print(f"Part 2: {pt2}")
